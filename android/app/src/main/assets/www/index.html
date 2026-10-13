@@ -1,0 +1,1620 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a5f7a">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px system-ui,sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Offene Fahrten</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:wght@500;600;700&family=Fira+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: eine Spalte, Kopfzeile mit Summen, Kartenliste, feste Aktionsleiste unten.
+   Die Fahrkarte selbst wird als Vollbild gezeichnet, mit dem freigestellten Code. */
+:root{
+  --bg:#eaeef2; --surface:#ffffff; --surface-2:#f3f6f8; --line:#d3dbe2;
+  --ink:#131a21; --muted:#5a6773; --faint:#8b98a4;
+  --accent:#0a5f7a; --accent-soft:#d9ecf2;
+  --ok:#1c7a4d; --ok-soft:#dcf0e6;
+  --warn:#9a5b06; --warn-soft:#fbeccf;
+  --crit:#a8281c; --crit-soft:#fadedb;
+  --shadow:0 1px 2px rgba(19,26,33,.08),0 6px 16px rgba(19,26,33,.06);
+  --display:"Fira Sans Condensed",system-ui,sans-serif;
+  --body:"Fira Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1217; --surface:#161e26; --surface-2:#1d272f; --line:#2b3741;
+  --ink:#e4ebf1; --muted:#9aa8b4; --faint:#6e7d89;
+  --accent:#4fb3d0; --accent-soft:#143039;
+  --ok:#5fc996; --ok-soft:#10301f;
+  --warn:#e2ab52; --warn-soft:#3a2c0f;
+  --crit:#f0877c; --crit-soft:#3c1915;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d1217; --surface:#161e26; --surface-2:#1d272f; --line:#2b3741;
+  --ink:#e4ebf1; --muted:#9aa8b4; --faint:#6e7d89;
+  --accent:#4fb3d0; --accent-soft:#143039;
+  --ok:#5fc996; --ok-soft:#10301f;
+  --warn:#e2ab52; --warn-soft:#3a2c0f;
+  --crit:#f0877c; --crit-soft:#3c1915;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;margin:0}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:.01em}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.head-in{padding:12px 16px 0;display:flex;flex-direction:column;gap:10px}
+.head-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.head-top h1{font-size:19px;font-weight:700;flex:1;min-width:0}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sum div{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.sum b{display:block;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:17px;font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
+.sum span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+nav{display:flex;gap:2px;padding:10px 16px 0;overflow-x:auto}
+nav button{background:none;border:0;border-bottom:2px solid transparent;padding:6px 10px 9px;color:var(--muted);font-family:var(--display);font-weight:600;font-size:15px;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+
+main{padding:14px 16px 96px;max-width:720px;margin:0 auto}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+
+.list{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.card-main{display:flex;gap:12px;padding:12px 14px;align-items:flex-start}
+.card-body{flex:1;min-width:0}
+.route{font-family:var(--display);font-size:17px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.meta{color:var(--muted);font-size:13px;margin-top:2px;overflow-wrap:anywhere}
+.zeiten{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+.price{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:17px;font-weight:600;text-align:right;white-space:nowrap}
+.pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px;margin-top:6px}
+.p-ok{background:var(--ok-soft);color:var(--ok)}
+.p-warn{background:var(--warn-soft);color:var(--warn)}
+.p-crit{background:var(--crit-soft);color:var(--crit)}
+.p-flat{background:var(--surface-2);color:var(--muted)}
+.codechip{width:34px;height:34px;flex:none;border:1px solid var(--line);border-radius:6px;background:#fff;object-fit:contain;padding:2px}
+.bar{height:4px;background:var(--surface-2)}
+.bar i{display:block;height:100%}
+.card-act{display:flex;border-top:1px solid var(--line)}
+.card-act button{flex:1;background:none;border:0;border-right:1px solid var(--line);padding:10px 4px;font-size:13px;font-weight:600;color:var(--accent)}
+.card-act button:last-child{border-right:0}
+.card-act button.quiet{color:var(--muted);font-weight:500}
+.card.done{opacity:.62}
+
+.empty{text-align:center;color:var(--muted);padding:40px 16px;border:1px dashed var(--line);border-radius:12px}
+.empty b{display:block;font-family:var(--display);font-size:17px;color:var(--ink);margin-bottom:6px}
+
+.fabbar{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;justify-content:center}
+.fabbar button{flex:1;max-width:330px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:10px;padding:11px;font-family:var(--display);font-weight:600;font-size:15px}
+.fabbar button.sec{background:var(--surface);color:var(--accent)}
+
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(10,16,21,.55);display:flex;align-items:flex-end;justify-content:center}
+.sheet-in{background:var(--bg);width:100%;max-width:720px;max-height:92vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:16px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;position:sticky;top:-16px;background:var(--bg);padding:4px 0 8px;z-index:2}
+.sheet-head h2{font-size:18px}
+.x{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 11px;font-size:14px}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:380px){.row2{grid-template-columns:1fr}}
+.check{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px}
+.check input{width:18px;height:18px;flex:none}
+.check span{font-size:14px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:12px}
+.box h3{font-size:15px;margin-bottom:8px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px;border-bottom:1px dashed var(--line)}
+.kv:last-child{border-bottom:0}
+.kv span{color:var(--muted)}
+.kv b{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600;text-align:right;overflow-wrap:anywhere}
+.note{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.5}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:10px 14px;font-weight:600;font-size:14px;flex:1;min-width:130px;text-align:center}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.danger{color:var(--crit);border-color:var(--crit)}
+.thumb{width:100%;border-radius:10px;border:1px solid var(--line);display:block;margin-top:8px}
+
+/* Reiseverlauf */
+.verlauf{margin-top:4px}
+.halt{display:grid;grid-template-columns:auto 14px 1fr;gap:9px;align-items:start;font-size:13.5px}
+.halt .t{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap;padding-top:1px}
+.halt .g{position:relative;height:100%;min-height:22px}
+.halt .g i{position:absolute;left:5px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.halt .g u{position:absolute;left:8.5px;top:12px;bottom:-4px;width:1.5px;background:var(--line)}
+.halt:last-child .g u{display:none}
+.halt .n{overflow-wrap:anywhere}
+.halt .n em{font-style:normal;color:var(--muted);font-size:12.5px;display:block}
+
+/* Vollbild-Fahrkarte */
+.full{position:fixed;inset:0;z-index:60;background:#f2f2f2;overflow-y:auto;padding:0 0 env(safe-area-inset-bottom,0px)}
+.full-bar{position:sticky;top:0;display:flex;gap:6px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;background:#f2f2f2;z-index:2}
+.full-bar button{flex:1;background:#fff;color:#1a1a1a;border:1px solid #c8c8c8;border-radius:9px;padding:9px;font-weight:600;font-size:14px}
+.full-bar button[aria-pressed="true"]{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.full-bar button.close{flex:0 0 auto;padding:9px 14px}
+.ticket{background:#fff;color:#111;max-width:460px;margin:0 auto 18px;border-radius:14px;box-shadow:0 2px 14px rgba(0,0,0,.14);overflow:hidden}
+.ticket-head{padding:14px 18px 12px;border-bottom:1px solid #e4e4e4}
+.ticket-head .kind{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6b6b6b}
+.ticket-head .rt{font-family:var(--display);font-size:21px;font-weight:700;line-height:1.2;margin-top:3px;overflow-wrap:anywhere}
+.ticket-head .dt{font-family:var(--mono);font-size:13px;color:#4a4a4a;margin-top:4px;font-variant-numeric:tabular-nums}
+.code-wrap{padding:20px 18px 14px;display:flex;flex-direction:column;align-items:center;gap:10px;background:#fff}
+.code-wrap img{display:block;width:100%;max-width:330px;height:auto;background:#fff}
+.code-wrap .cap{font-family:var(--mono);font-size:11px;color:#777;letter-spacing:.06em;text-align:center}
+.code-none{padding:28px 18px;text-align:center;color:#666;font-size:13.5px;line-height:1.55;background:#fafafa;border-top:1px solid #eee;border-bottom:1px solid #eee}
+.perf{height:16px;position:relative;background:#fff}
+.perf::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px dashed #d8d8d8}
+.perf::after{content:"";position:absolute;left:-9px;right:-9px;top:50%;transform:translateY(-50%);height:18px}
+.ticket-data{padding:4px 18px 18px;display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.ticket-data div{min-width:0}
+.ticket-data span{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#8a8a8a}
+.ticket-data b{display:block;font-family:var(--mono);font-size:14px;font-weight:600;color:#161616;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.ticket-foot{background:#f7f7f7;border-top:1px solid #e9e9e9;padding:11px 18px;font-size:12.5px;color:#4d4d4d;line-height:1.5}
+.ticket-foot b{color:#111}
+.helfer{max-width:460px;margin:0 auto 20px;text-align:center;font-size:12px;color:#6a6a6a;padding:0 18px}
+
+/* Code-Zuschnitt anpassen */
+.cropstage{position:relative;margin-top:8px;touch-action:none;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#fff}
+.cropstage img{display:block;width:100%}
+.croprect{position:absolute;border:2px solid #0a5f7a;box-shadow:0 0 0 9999px rgba(10,16,21,.42);cursor:move}
+.croprect b{position:absolute;right:-9px;bottom:-9px;width:20px;height:20px;border-radius:50%;background:#0a5f7a;border:2px solid #fff;cursor:nwse-resize}
+
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.stat b{display:block;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;line-height:1.1}
+.stat span{display:block;font-size:12px;color:var(--muted);margin-top:3px}
+.barrow{display:grid;grid-template-columns:minmax(78px,32%) 1fr auto;gap:9px;align-items:center;padding:5px 0;font-size:13.5px}
+.barrow i{display:block;height:9px;border-radius:4px;background:var(--accent);min-width:3px}
+.barrow em{font-family:var(--mono);font-variant-numeric:tabular-nums;font-style:normal;color:var(--muted);font-size:13px}
+.barrow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.hint{background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:11px 13px;font-size:13.5px;margin-bottom:12px;color:var(--ink);line-height:1.5}
+.hint b{font-family:var(--display)}
+.hint.bad{background:var(--crit-soft);border-color:var(--crit)}
+.hint.good{background:var(--ok-soft);border-color:var(--ok)}
+progress{width:100%;height:7px;margin-top:7px}
+textarea{min-height:92px;font-family:var(--mono);font-size:12px}
+.hidden{display:none!important}
+.bc-btn{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12.5px;font-weight:600;color:var(--accent);white-space:nowrap}
+</style>
+
+</head>
+<body>
+<header>
+  <div class="head-in">
+    <div class="head-top">
+      <h1>Offene Fahrten</h1>
+      <button class="bc-btn hidden" id="bcBtn">BahnCard</button>
+      <button class="x" id="themeBtn" title="Hell oder dunkel">◐</button>
+    </div>
+    <div class="sum">
+      <div><b class="num" id="sOffen">0,00 €</b><span>offen</span></div>
+      <div><b class="num" id="sAnzahl">0</b><span>Fahrten</span></div>
+      <div><b class="num" id="sFrist">–</b><span>nächster Verfall</span></div>
+    </div>
+  </div>
+  <nav role="tablist">
+    <button role="tab" aria-selected="true" data-tab="fahrten">Fahrten</button>
+    <button role="tab" aria-selected="false" data-tab="auswertung">Auswertung</button>
+    <button role="tab" aria-selected="false" data-tab="daten">Daten</button>
+  </nav>
+</header>
+
+<main>
+  <section id="tab-fahrten">
+    <div class="chips" id="filters"></div>
+    <div class="list" id="list"></div>
+  </section>
+
+  <section id="tab-auswertung" hidden>
+    <div class="statgrid" id="stats"></div>
+    <div class="box"><h3>Wert nach Strecke</h3><div id="byRoute"></div></div>
+    <div class="box"><h3>Verfall in den nächsten 12 Monaten</h3><div id="byMonth"></div></div>
+    <div class="box"><h3>Fahrgastrechte</h3><div id="fgrSum"></div>
+      <p class="note">Entschädigung ab 60 Minuten Verspätung am Ziel 25 Prozent des Fahrpreises, ab 120 Minuten 50 Prozent. Beträge unter 4 Euro werden nicht ausgezahlt.</p>
+    </div>
+  </section>
+
+  <section id="tab-daten" hidden>
+    <div class="box">
+      <h3>BahnCard</h3>
+      <div id="bcBox"></div>
+    </div>
+    <div class="box">
+      <h3>Sicherung</h3>
+      <p class="note" style="margin-top:0">Alle Daten liegen ausschließlich auf diesem Gerät. Ohne Sicherung sind sie weg, wenn du die App-Daten löschst.</p>
+      <div class="btnrow">
+        <button class="btn pri" id="expJson">Sicherung erstellen</button>
+        <button class="btn" id="impJson">Sicherung einlesen</button>
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="expCsv">Als CSV ausgeben</button>
+      </div>
+      <input type="file" id="impFile" accept="application/json" class="hidden">
+      <div id="dataOut" class="hidden" style="margin-top:12px"></div>
+    </div>
+    <div class="box">
+      <h3>Regeln, nach denen gerechnet wird</h3>
+      <div class="kv"><span>Zugbindung aufgehoben ab</span><b>20 Min</b></div>
+      <div class="kv"><span>Ticket danach gültig</span><b>12 Monate</b></div>
+      <div class="kv"><span>Entschädigung ab 60 Min</span><b>25 %</b></div>
+      <div class="kv"><span>Entschädigung ab 120 Min</span><b>50 %</b></div>
+      <div class="kv"><span>Mindestauszahlung</span><b>4,00 €</b></div>
+      <p class="note">Quelle: bahn.de, Stand Oktober 2026. Die Zwölfmonatsfrist gilt für Sparpreise mit aufgehobener Zugbindung und läuft ab dem ursprünglichen Reisedatum. Prüfe im Zweifel den Einzelfall, die App ersetzt keine Rechtsauskunft.</p>
+    </div>
+  </section>
+</main>
+
+<div class="fabbar">
+  <button class="sec" id="btnLink">Link einfügen</button>
+  <button id="btnNew">Fahrt erfassen</button>
+</div>
+<input type="file" id="scanFile" accept="image/*" class="hidden">
+
+<div id="sheetHost"></div>
+<div id="fullHost"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script>
+"use strict";
+
+/* ================= Konstanten ================= */
+const GUELTIG_MONATE = 12;
+const MIN_AUSZAHLUNG = 4;
+const STATUS = {
+  offen:      {label:"offen",                 cls:"p-flat"},
+  eingeloest: {label:"eingelöst",             cls:"p-ok"},
+  beantragt:  {label:"Erstattung beantragt",  cls:"p-warn"},
+  erstattet:  {label:"erstattet",             cls:"p-ok"},
+  verfallen:  {label:"verfallen",             cls:"p-crit"}
+};
+const TICKETARTEN = ["Super Sparpreis","Sparpreis","Flexpreis","Flexpreis Plus","Länderticket","Sonstiges"];
+const BAHNCARD_ARTEN = ["BahnCard 25","BahnCard 50","BahnCard 100","My BahnCard 25","My BahnCard 50","Keine"];
+const hasBridge = typeof window.AndroidBridge !== "undefined";
+
+/* ================= Speicher ================= */
+const DB_NAME = "db-fahrten", STORE = "fahrten", KARTEN = "karten";
+let _db = null;
+function openDb(){
+  return new Promise((res,rej)=>{
+    if(_db) return res(_db);
+    const r = indexedDB.open(DB_NAME, 2);
+    r.onupgradeneeded = e => {
+      const db = r.result;
+      if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE,{keyPath:"id"});
+      if(!db.objectStoreNames.contains(KARTEN)) db.createObjectStore(KARTEN,{keyPath:"id"});
+    };
+    r.onsuccess = () => { _db = r.result; res(_db); };
+    r.onerror = () => rej(r.error);
+  });
+}
+async function st(store, mode){ const db = await openDb(); return db.transaction(store,mode).objectStore(store); }
+function anfrage(req){ return new Promise((res,rej)=>{ req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error); }); }
+async function dbAll(){ return anfrage((await st(STORE,"readonly")).getAll()).then(r=>r||[]); }
+async function dbPut(o){ return anfrage((await st(STORE,"readwrite")).put(o)); }
+async function dbDel(id){ return anfrage((await st(STORE,"readwrite")).delete(id)); }
+async function kartePut(o){ return anfrage((await st(KARTEN,"readwrite")).put(o)); }
+async function karteGet(id){ return anfrage((await st(KARTEN,"readonly")).get(id)); }
+async function karteDel(id){ return anfrage((await st(KARTEN,"readwrite")).delete(id)); }
+
+/* ================= Hilfen ================= */
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const eur = n => (Number(n)||0).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
+const dmy = iso => { if(!iso) return "–"; const p = iso.split("-"); return p.length===3 ? p[2]+"."+p[1]+"."+p[0] : iso; };
+const todayIso = () => new Date().toISOString().slice(0,10);
+function addMonths(iso, m){
+  const d = new Date(iso+"T12:00:00");
+  const tag = d.getDate();
+  d.setMonth(d.getMonth()+m);
+  if(d.getDate() < tag) d.setDate(0);
+  return d.toISOString().slice(0,10);
+}
+function daysBetween(a,b){ return Math.round((new Date(b+"T12:00:00") - new Date(a+"T12:00:00"))/86400000); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function dauer(f){
+  if(!f.abfahrt || !f.ankunft || !f.reisedatum) return null;
+  const a = new Date(f.reisedatum+"T"+f.abfahrt+":00");
+  const b = new Date((f.ankunftsdatum||f.reisedatum)+"T"+f.ankunft+":00");
+  let min = Math.round((b-a)/60000);
+  if(min < 0) min += 1440;
+  if(!isFinite(min) || min <= 0) return null;
+  return Math.floor(min/60)+" h "+String(min%60).padStart(2,"0");
+}
+
+/* ================= Fachlogik ================= */
+function verfallsdatum(f){
+  if(!f.reisedatum) return null;
+  return f.zugbindungAufgehoben ? addMonths(f.reisedatum, GUELTIG_MONATE) : f.reisedatum;
+}
+function restTage(f){ const v = verfallsdatum(f); return v ? daysBetween(todayIso(), v) : null; }
+function entschaedigung(f){
+  const p = Number(f.preis)||0, v = Number(f.verspaetungMin)||0;
+  let quote = 0;
+  if(v >= 120) quote = .5; else if(v >= 60) quote = .25;
+  const betrag = Math.round(p*quote*100)/100;
+  return {quote, betrag, auszahlbar: betrag >= MIN_AUSZAHLUNG};
+}
+function istOffen(f){ return f.status === "offen" || f.status === "beantragt"; }
+function ampel(f){
+  if(!istOffen(f)) return {cls:"p-flat", color:"var(--faint)"};
+  const t = restTage(f);
+  if(t === null) return {cls:"p-flat", color:"var(--faint)"};
+  if(t < 30) return {cls:"p-crit", color:"var(--crit)"};
+  if(t < 90) return {cls:"p-warn", color:"var(--warn)"};
+  return {cls:"p-ok", color:"var(--ok)"};
+}
+function fristText(f){
+  if(!istOffen(f)) return STATUS[f.status].label;
+  const t = restTage(f);
+  if(t === null) return "kein Datum";
+  if(t < 0)  return "seit "+Math.abs(t)+" Tg. abgelaufen";
+  if(t === 0) return "läuft heute ab";
+  if(t === 1) return "noch 1 Tag";
+  return "noch "+t+" Tage";
+}
+
+/* ================= Linkauswertung ================= */
+/* Recon-String aus dem bahn.de-Teilen-Link. Aufbau je Abschnitt:
+   T$A=1@O=<Start>@..@L=<EVA>@..$A=1@O=<Ziel>@..$<YYYYMMDDhhmm ab>$<...an>$<Gattung+Nr>$...
+   Abschnitte durch § getrennt, Rahmen ¶HKI¶ ... ¶KC¶ */
+function parseRecon(recon){
+  if(!recon || typeof recon !== "string") return null;
+  const kern = recon.split("¶KC¶")[0].replace(/^¶HKI¶/, "");
+  const abschnitte = [];
+  for(const roh of kern.split("§").filter(s => s.indexOf("$") > -1)){
+    const t = roh.replace(/^T\$/, "").split("$");
+    if(t.length < 4) continue;
+    const ort = s => { const m = /@O=([^@]*)@/.exec(s); return m ? m[1].trim() : null; };
+    const eva = s => { const m = /@L=(\d+)@/.exec(s); return m ? m[1] : null; };
+    const zeit = s => {
+      const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec((s||"").trim());
+      return m ? {datum:m[1]+"-"+m[2]+"-"+m[3], uhr:m[4]+":"+m[5]} : null;
+    };
+    const von = ort(t[0]), nach = ort(t[1]), ab = zeit(t[2]), an = zeit(t[3]);
+    if(!von || !nach || !ab || !an) continue;
+    let zug = null;
+    const zr = (t[4]||"").trim();
+    if(zr){
+      const m = /^([A-Za-zÄÖÜ]{1,5})\s*0*(\d{1,5})$/.exec(zr.replace(/\s+/g," "));
+      zug = m ? m[1].toUpperCase()+" "+m[2] : zr.replace(/\s+/g," ");
+    }
+    abschnitte.push({von, nach, vonEva:eva(t[0]), nachEva:eva(t[1]), ab, an, zug});
+  }
+  if(!abschnitte.length) return null;
+  const e = abschnitte[0], l = abschnitte[abschnitte.length-1];
+  return {
+    von:e.von, nach:l.nach, reisedatum:e.ab.datum, abfahrt:e.ab.uhr,
+    ankunft:l.an.uhr, ankunftsdatum:l.an.datum,
+    zugnummern: abschnitte.map(a=>a.zug).filter(Boolean).join(", "),
+    umstiege: Math.max(0, abschnitte.length-1), abschnitte
+  };
+}
+function parseBahnLink(roh){
+  if(!roh || typeof roh !== "string") return null;
+  const text = roh.trim();
+  if(text.indexOf("¶HKI¶") === 0 || /^T\$A=\d@O=/.test(text)){
+    const r = parseRecon(text);
+    return r ? Object.assign({quelle:"recon", recon:text}, r) : null;
+  }
+  let url;
+  try{ url = new URL(text.replace(/^<|>$/g,"")); }catch(_){ return null; }
+  const vbid = url.searchParams.get("vbid");
+  if(vbid) return {quelle:"vbid", vbid};
+  const frag = url.hash.replace(/^#/,"");
+  if(frag){
+    const p = new URLSearchParams(frag);
+    const so = p.get("so"), zo = p.get("zo"), hd = p.get("hd");
+    if(so || zo || hd){
+      const out = {quelle:"langlink"};
+      if(so) out.von = so.trim();
+      if(zo) out.nach = zo.trim();
+      if(hd){
+        const st = hd.split("T");
+        if(/^\d{4}-\d{2}-\d{2}$/.test(st[0])) out.reisedatum = st[0];
+        if(st[1] && /^\d{2}:\d{2}/.test(st[1])) out.abfahrt = st[1].slice(0,5);
+      }
+      const kl = p.get("kl");
+      if(kl === "1" || kl === "2") out.klasse = kl;
+      const r = p.get("r");
+      if(r){
+        const m = /(\d{2}):(KLASSE_[12])/.exec(r);
+        if(m) out.bahncard = "BahnCard "+m[1]+", "+(m[2] === "KLASSE_1" ? "1." : "2.")+" Klasse";
+      }
+      out.vonEva = p.get("soid") || null;
+      out.nachEva = p.get("zoid") || null;
+      return out;
+    }
+  }
+  return null;
+}
+function parseVbidAntwort(json){
+  if(!json || typeof json !== "object") return null;
+  const recon = json.hinfahrtRecon || json.rueckfahrtRecon || null;
+  const out = (recon ? parseRecon(recon) : null) || {};
+  out.quelle = "vbid";
+  if(recon) out.recon = recon;
+  if(!out.von && json.startOrt) out.von = String(json.startOrt).trim();
+  if(!out.nach && json.zielOrt) out.nach = String(json.zielOrt).trim();
+  if(!out.reisedatum && json.hinfahrtDatum){
+    const d = new Date(json.hinfahrtDatum);
+    if(!isNaN(d)) out.reisedatum = new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  }
+  return (out.von || out.nach || out.reisedatum) ? out : null;
+}
+
+/* ================= Netzzugriff ================= */
+/* In der App übernimmt die Android-Hülle den Abruf, dort gibt es keine
+   Herkunftssperre. Im Browser wird es versucht und scheitert meist daran. */
+const offeneAnfragen = new Map();
+window.__netResult = function(id, status, body){
+  const w = offeneAnfragen.get(id);
+  if(!w) return;
+  offeneAnfragen.delete(id);
+  w(status, body);
+};
+function holen(url, methode, koerper){
+  return new Promise((res, rej) => {
+    if(hasBridge){
+      const id = uid();
+      offeneAnfragen.set(id, (status, body) => {
+        if(status >= 200 && status < 300){
+          try{ res(JSON.parse(body)); }catch(e){ rej(new Error("Antwort war kein JSON.")); }
+        } else rej(new Error("Server antwortete mit "+status+"."));
+      });
+      setTimeout(()=>{ if(offeneAnfragen.has(id)){ offeneAnfragen.delete(id); rej(new Error("Zeitüberschreitung.")); } }, 25000);
+      try{ window.AndroidBridge.httpRequest(id, methode||"GET", url, koerper?JSON.stringify(koerper):""); }
+      catch(e){ offeneAnfragen.delete(id); rej(new Error("Hülle nicht erreichbar.")); }
+    } else {
+      fetch(url, {
+        method: methode||"GET",
+        headers: Object.assign({"Accept":"application/json"}, koerper?{"Content-Type":"application/json"}:{}),
+        body: koerper ? JSON.stringify(koerper) : undefined
+      }).then(r => r.ok ? r.json() : Promise.reject(new Error("Server antwortete mit "+r.status+".")))
+        .then(res).catch(e => rej(new Error(e.message || "Abruf blockiert.")));
+    }
+  });
+}
+const vbidUrl = v => "https://www.bahn.de/web/api/angebote/verbindung/"+encodeURIComponent(v);
+
+/* ================= Codefreistellung ================= */
+/* Der Barcode wird im Screenshot gesucht und in vollem Auflösungsmaßstab
+   ausgeschnitten. Neu erzeugt wird er nicht: Die Nutzlast eines Aztec-Codes
+   auf dem Ticket ist signierte Binärdaten, ein neu kodierter Code wäre am
+   Zugang wertlos. Ausgeschnitten bleiben die Originalpixel erhalten. */
+function detectCodeBox(gray, w, h, opt){
+  opt = opt || {};
+  const ZELLE = opt.zelle || Math.max(3, Math.round(Math.min(w,h)/130));
+  const cx = Math.floor(w/ZELLE), cy = Math.floor(h/ZELLE);
+  if(cx < 6 || cy < 6) return null;
+
+  const tinte = new Uint8Array(cx*cy);
+  for(let j=0;j<cy;j++) for(let i=0;i<cx;i++){
+    let dunkel=0, n=0;
+    const x0=i*ZELLE, y0=j*ZELLE;
+    for(let y=y0;y<y0+ZELLE && y<h;y++) for(let x=x0;x<x0+ZELLE && x<w;x++){ if(gray[y*w+x]<110) dunkel++; n++; }
+    if(n && dunkel/n > 0.04) tinte[j*cx+i] = 1;
+  }
+
+  /* Ist eine Zelle kleiner als ein Codemodul, liegt sie ganz im Modul und das
+     Raster zerfällt in ein Schachbrett. Verbreitern schließt die Lücken. */
+  const voll = new Uint8Array(cx*cy);
+  for(let j=0;j<cy;j++) for(let i=0;i<cx;i++){
+    if(!tinte[j*cx+i]) continue;
+    for(let dj=-1;dj<=1;dj++) for(let di=-1;di<=1;di++){
+      const ni=i+di, nj=j+dj;
+      if(ni>=0 && ni<cx && nj>=0 && nj<cy) voll[nj*cx+ni] = 1;
+    }
+  }
+
+  const besucht = new Uint8Array(cx*cy);
+  let best = null;
+  const stapel = [];
+  for(let start=0; start<cx*cy; start++){
+    if(!voll[start] || besucht[start]) continue;
+    stapel.length = 0; stapel.push(start); besucht[start] = 1;
+    let minI=cx, maxI=-1, minJ=cy, maxJ=-1, anzahl=0;
+    while(stapel.length){
+      const k = stapel.pop(), i = k%cx, j = (k-i)/cx;
+      anzahl++;
+      if(i<minI) minI=i; if(i>maxI) maxI=i;
+      if(j<minJ) minJ=j; if(j>maxJ) maxJ=j;
+      const nb = [i>0?k-1:-1, i<cx-1?k+1:-1, j>0?k-cx:-1, j<cy-1?k+cx:-1];
+      for(const nk of nb) if(nk>=0 && voll[nk] && !besucht[nk]){ besucht[nk]=1; stapel.push(nk); }
+    }
+    const bwz = maxI-minI+1, bhz = maxJ-minJ+1;
+    const seite = bwz>bhz ? bwz/bhz : bhz/bwz;
+    const fuellung = anzahl/(bwz*bhz);
+    if(anzahl < 16 || seite > 2.2 || fuellung < 0.7) continue;
+    if(anzahl/(cx*cy) > (opt.maxFlaeche || 0.55)) continue;
+
+    const px0=minI*ZELLE, py0=minJ*ZELLE;
+    const px1=Math.min(w,(maxI+1)*ZELLE), py1=Math.min(h,(maxJ+1)*ZELLE);
+    let dunkel=0, mittel=0, n=0;
+    for(let y=py0;y<py1;y++) for(let x=px0;x<px1;x++){
+      const v = gray[y*w+x];
+      if(v<110) dunkel++; else if(v<190) mittel++;
+      n++;
+    }
+    if(!n) continue;
+    const schwarz = dunkel/n, grau = mittel/n;
+    if(schwarz < (opt.min||0.2) || schwarz > (opt.max||0.78)) continue;
+    if(grau > (opt.grau||0.34)) continue;
+    const punkte = anzahl/seite;
+    if(!best || punkte > best.punkte) best = {minI,maxI,minJ,maxJ,punkte};
+  }
+  if(!best) return null;
+
+  let x=best.minI*ZELLE, y=best.minJ*ZELLE;
+  let bw=(best.maxI-best.minI+1)*ZELLE, bh=(best.maxJ-best.minJ+1)*ZELLE;
+  const seite = Math.max(bw,bh);
+  x -= Math.round((seite-bw)/2); y -= Math.round((seite-bh)/2);
+  bw = bh = seite;
+  const rand = Math.max(6, Math.round(seite*0.09));
+  x -= rand; y -= rand; bw += rand*2; bh += rand*2;
+  x = Math.max(0,x); y = Math.max(0,y);
+  bw = Math.min(bw, w-x); bh = Math.min(bh, h-y);
+  if(bw < 24 || bh < 24) return null;
+  return {x,y,w:bw,h:bh};
+}
+
+function bildLaden(blob){
+  return new Promise((res,rej)=>{
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => { res({img, url}); };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("Bild nicht lesbar.")); };
+    img.src = url;
+  });
+}
+async function codeSuchen(blob){
+  const {img, url} = await bildLaden(blob);
+  try{
+    // Analyse auf verkleinerter Fassung, Zuschnitt später in Originalgröße
+    const ZIEL = 900;
+    const f = Math.min(1, ZIEL/Math.max(img.naturalWidth, img.naturalHeight));
+    const aw = Math.max(1, Math.round(img.naturalWidth*f)), ah = Math.max(1, Math.round(img.naturalHeight*f));
+    const c = document.createElement("canvas"); c.width = aw; c.height = ah;
+    const ctx = c.getContext("2d", {willReadFrequently:true});
+    ctx.drawImage(img, 0, 0, aw, ah);
+    const d = ctx.getImageData(0,0,aw,ah).data;
+    const gray = new Uint8Array(aw*ah);
+    for(let i=0,p=0;i<d.length;i+=4,p++) gray[p] = (d[i]*306 + d[i+1]*601 + d[i+2]*117) >> 10;
+    const box = detectCodeBox(gray, aw, ah);
+    if(!box) return {box:null, natur:{w:img.naturalWidth, h:img.naturalHeight}};
+    return {
+      box: {
+        x: Math.round(box.x/f), y: Math.round(box.y/f),
+        w: Math.round(box.w/f), h: Math.round(box.h/f)
+      },
+      natur: {w:img.naturalWidth, h:img.naturalHeight}
+    };
+  } finally { URL.revokeObjectURL(url); }
+}
+async function codeSchneiden(blob, box){
+  const {img, url} = await bildLaden(blob);
+  try{
+    const x = Math.max(0, Math.min(img.naturalWidth-1, Math.round(box.x)));
+    const y = Math.max(0, Math.min(img.naturalHeight-1, Math.round(box.y)));
+    const w = Math.max(8, Math.min(img.naturalWidth-x, Math.round(box.w)));
+    const h = Math.max(8, Math.min(img.naturalHeight-y, Math.round(box.h)));
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const ctx = c.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0,0,w,h);
+    ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+    return await new Promise(r => c.toBlob(r, "image/png"));
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/* ================= Zustand ================= */
+let fahrten = [];
+let bahncard = null;
+let filter = "offen";
+let tab = "fahrten";
+const bildUrls = new Map();
+function bildUrl(key, blob){
+  if(!blob) return null;
+  if(bildUrls.has(key)) return bildUrls.get(key);
+  const u = URL.createObjectURL(blob);
+  bildUrls.set(key, u);
+  return u;
+}
+
+/* ================= Kopf und Liste ================= */
+function renderSummary(){
+  const offen = fahrten.filter(istOffen);
+  document.getElementById("sOffen").textContent = eur(offen.reduce((s,f)=>s+(+f.preis||0),0));
+  document.getElementById("sAnzahl").textContent = String(offen.length);
+  const fr = offen.map(restTage).filter(t => t !== null && t >= 0).sort((a,b)=>a-b);
+  document.getElementById("sFrist").textContent = fr.length ? fr[0]+" Tg." : "–";
+  document.getElementById("bcBtn").classList.toggle("hidden", !bahncard);
+}
+const FILTERS = [["offen","Offen"],["beantragt","Beantragt"],["eingeloest","Eingelöst"],["erstattet","Erstattet"],["verfallen","Verfallen"],["alle","Alle"]];
+function renderFilters(){
+  const c = {alle: fahrten.length};
+  for(const f of fahrten) c[f.status] = (c[f.status]||0)+1;
+  document.getElementById("filters").innerHTML = FILTERS.map(([k,l]) =>
+    '<button class="chip" data-f="'+k+'" aria-pressed="'+(filter===k)+'">'+l+'<span class="num"> '+(c[k]||0)+'</span></button>').join("");
+}
+function renderList(){
+  const host = document.getElementById("list");
+  let rows = filter === "alle" ? fahrten.slice() : fahrten.filter(f => f.status === filter);
+  rows.sort((a,b)=>{
+    const ta = restTage(a), tb = restTage(b);
+    if(ta === null) return 1; if(tb === null) return -1;
+    return ta - tb;
+  });
+  if(!rows.length){
+    host.innerHTML = '<div class="empty"><b>Nichts in dieser Ansicht</b>'+
+      (fahrten.length ? "Wechsle den Filter." : "Füge unten einen bahn.de-Link ein, das ist der genaueste Weg.")+'</div>';
+    return;
+  }
+  host.innerHTML = rows.map(f=>{
+    const a = ampel(f), t = restTage(f);
+    const pct = (istOffen(f) && t !== null) ? Math.max(0, Math.min(100, (t/(GUELTIG_MONATE*30.4))*100)) : 0;
+    const ent = entschaedigung(f);
+    const cu = f.codeBild ? bildUrl("code-"+f.id, f.codeBild) : null;
+    const d = dauer(f);
+    return '<article class="card'+(istOffen(f)?"":" done")+'" data-id="'+f.id+'">'+
+      '<div class="card-main">'+
+        (cu ? '<img class="codechip" src="'+cu+'" alt="Code">' : '')+
+        '<div class="card-body">'+
+          '<div class="route">'+esc(f.von||"?")+' <span style="color:var(--faint)">›</span> '+esc(f.nach||"?")+'</div>'+
+          '<div class="meta">'+dmy(f.reisedatum)+(f.zugnummern?" · "+esc(f.zugnummern):"")+(f.ticketart?" · "+esc(f.ticketart):"")+'</div>'+
+          (f.abfahrt||f.ankunft ? '<div class="zeiten">'+esc(f.abfahrt||"––:––")+' – '+esc(f.ankunft||"––:––")+
+            (d?" · "+d:"")+(f.umstiege ? " · "+f.umstiege+" Umst." : (f.umstiege===0?" · direkt":""))+'</div>' : '')+
+          '<span class="pill '+a.cls+'">'+esc(fristText(f))+'</span>'+
+          (ent.betrag>0 && istOffen(f) ? '<span class="pill p-warn" style="margin-left:5px">+'+eur(ent.betrag)+' FGR</span>' : '')+
+        '</div>'+
+        '<div class="price">'+eur(f.preis)+'</div>'+
+      '</div>'+
+      '<div class="bar"><i style="width:'+pct.toFixed(1)+'%;background:'+a.color+'"></i></div>'+
+      '<div class="card-act">'+
+        (f.screenshot||f.codeBild ? '<button data-act="qr">Fahrkarte</button>' : '')+
+        (istOffen(f) ? '<button data-act="einloesen">Eingelöst</button>' : '<button data-act="reopen" class="quiet">Wieder offen</button>')+
+        '<button data-act="open" class="quiet">Details</button>'+
+      '</div></article>';
+  }).join("");
+}
+
+/* ================= Auswertung ================= */
+function renderStats(){
+  const offen = fahrten.filter(istOffen);
+  const eingeloest = fahrten.filter(f=>f.status==="eingeloest");
+  const erstattet = fahrten.filter(f=>f.status==="erstattet");
+  const verfallen = fahrten.filter(f=>f.status==="verfallen" || (istOffen(f) && (restTage(f)??1) < 0));
+  const sum = a => eur(a.reduce((s,f)=>s+(+f.preis||0),0));
+  document.getElementById("stats").innerHTML =
+    '<div class="stat"><b>'+sum(offen)+'</b><span>offener Wert, '+offen.length+' Fahrten</span></div>'+
+    '<div class="stat"><b>'+sum(eingeloest)+'</b><span>eingelöst, '+eingeloest.length+' Fahrten</span></div>'+
+    '<div class="stat"><b>'+sum(erstattet)+'</b><span>erstattet</span></div>'+
+    '<div class="stat"><b style="color:var(--crit)">'+sum(verfallen)+'</b><span>verfallen oder abgelaufen</span></div>';
+
+  const routes = {};
+  for(const f of offen){ const k = (f.von||"?")+" › "+(f.nach||"?"); routes[k] = (routes[k]||0)+(+f.preis||0); }
+  const rl = Object.entries(routes).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const rmax = rl.length ? rl[0][1] : 1;
+  document.getElementById("byRoute").innerHTML = rl.length
+    ? rl.map(([k,v])=>'<div class="barrow"><span title="'+esc(k)+'">'+esc(k)+'</span><i style="width:'+Math.max(3,v/rmax*100)+'%"></i><em>'+eur(v)+'</em></div>').join("")
+    : '<p class="note" style="margin:0">Noch keine offenen Fahrten.</p>';
+
+  const months = {};
+  for(const f of offen){ const v = verfallsdatum(f); if(v) months[v.slice(0,7)] = (months[v.slice(0,7)]||0)+(+f.preis||0); }
+  const ml = Object.entries(months).sort((a,b)=>a[0]<b[0]?-1:1).slice(0,12);
+  const mmax = ml.length ? Math.max.apply(null, ml.map(x=>x[1])) : 1;
+  const MN = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+  document.getElementById("byMonth").innerHTML = ml.length
+    ? ml.map(([k,v])=>{
+        const p = k.split("-"), past = k < todayIso().slice(0,7);
+        return '<div class="barrow"><span>'+MN[+p[1]-1]+' '+p[0].slice(2)+'</span><i style="width:'+Math.max(3,v/mmax*100)+'%;background:'+(past?"var(--crit)":"var(--accent)")+'"></i><em>'+eur(v)+'</em></div>';
+      }).join("")
+    : '<p class="note" style="margin:0">Noch keine Verfallsdaten.</p>';
+
+  const anspruch = fahrten.filter(f=>entschaedigung(f).betrag>0 && f.status!=="erstattet");
+  const zahlbar = anspruch.filter(f=>entschaedigung(f).auszahlbar);
+  document.getElementById("fgrSum").innerHTML =
+    '<div class="kv"><span>Fahrten mit Verspätung ab 60 Min</span><b>'+anspruch.length+'</b></div>'+
+    '<div class="kv"><span>Rechnerischer Anspruch</span><b>'+eur(anspruch.reduce((s,f)=>s+entschaedigung(f).betrag,0))+'</b></div>'+
+    '<div class="kv"><span>davon auszahlbar (ab 4 €)</span><b>'+eur(zahlbar.reduce((s,f)=>s+entschaedigung(f).betrag,0))+'</b></div>';
+}
+
+function renderBcBox(){
+  const host = document.getElementById("bcBox");
+  if(!bahncard){
+    host.innerHTML = '<p class="note" style="margin-top:0">Noch keine BahnCard hinterlegt. Screenshot der Karte samt Code anhängen, dann liegt sie bei der Kontrolle neben der Fahrkarte.</p>'+
+      '<div class="btnrow"><button class="btn pri" data-bc="neu">BahnCard hinterlegen</button></div>';
+  } else {
+    const cu = bahncard.codeBild ? bildUrl("bc-code", bahncard.codeBild) : (bahncard.bild ? bildUrl("bc-bild", bahncard.bild) : null);
+    const abgelaufen = bahncard.gueltigBis && bahncard.gueltigBis < todayIso();
+    host.innerHTML =
+      '<div class="kv"><span>Art</span><b>'+esc(bahncard.art||"–")+'</b></div>'+
+      '<div class="kv"><span>Klasse</span><b>'+esc(bahncard.klasse||"2")+'. Klasse</b></div>'+
+      '<div class="kv"><span>Nummer</span><b>'+esc(bahncard.nummer||"–")+'</b></div>'+
+      '<div class="kv"><span>Gültig bis</span><b'+(abgelaufen?' style="color:var(--crit)"':'')+'>'+dmy(bahncard.gueltigBis)+'</b></div>'+
+      (cu ? '<img class="thumb" src="'+cu+'" alt="BahnCard" style="max-width:190px;background:#fff">' : '<p class="note">Kein Code hinterlegt.</p>')+
+      '<div class="btnrow"><button class="btn pri" data-bc="zeigen">Groß anzeigen</button><button class="btn" data-bc="neu">Bearbeiten</button></div>';
+  }
+}
+
+function renderAll(){
+  renderSummary(); renderFilters(); renderList(); renderBcBox();
+  if(tab === "auswertung") renderStats();
+}
+
+/* ================= Sheets ================= */
+function closeSheet(){ document.getElementById("sheetHost").innerHTML = ""; }
+function sheet(titel, inhalt){
+  document.getElementById("sheetHost").innerHTML =
+    '<div class="sheet" id="sheet"><div class="sheet-in">'+
+    '<div class="sheet-head"><h2>'+esc(titel)+'</h2><button class="x" data-close>Schließen</button></div>'+
+    inhalt+'</div></div>';
+  const s = document.getElementById("sheet");
+  s.addEventListener("click", e => { if(e.target === s || e.target.closest("[data-close]")) closeSheet(); });
+  return s;
+}
+
+/* ---------- Link einfügen ---------- */
+function openLinkSheet(vorbelegung){
+  const s = sheet("Fahrt aus Link übernehmen",
+    '<div class="hint"><b>Der genaueste Weg.</b> In der DB-App oder auf bahn.de bei der Verbindung auf Teilen tippen und den Link hier einfügen. Daraus kommen Strecke, Datum, Abfahrt, Ankunft, Zugnummern und Umstiege.</div>'+
+    '<div class="field"><label for="lk">bahn.de-Link</label>'+
+    '<textarea id="lk" placeholder="https://www.bahn.de/buchung/start?vbid=…">'+esc(vorbelegung||"")+'</textarea></div>'+
+    '<div class="btnrow"><button class="btn pri" data-go>Auswerten</button>'+
+    '<button class="btn" data-paste>Aus Zwischenablage</button></div>'+
+    '<div id="lkOut"></div>'+
+    '<p class="note">Funktioniert mit dem kurzen Teilen-Link, mit dem langen Link aus der Adressleiste und mit einem direkt eingefügten Recon-String. Der Preis steht in keinem der Links, den trägst du selbst ein.</p>');
+
+  const out = () => document.getElementById("lkOut");
+  s.addEventListener("click", async e => {
+    if(e.target.closest("[data-paste]")){
+      try{
+        const t = await navigator.clipboard.readText();
+        document.getElementById("lk").value = t;
+      }catch(_){
+        out().innerHTML = '<div class="hint bad">Die Zwischenablage ist hier gesperrt. Bitte von Hand einfügen.</div>';
+      }
+      return;
+    }
+    if(!e.target.closest("[data-go]")) return;
+
+    const roh = document.getElementById("lk").value.trim();
+    const erg = parseBahnLink(roh);
+    if(!erg){
+      out().innerHTML = '<div class="hint bad"><b>Damit komme ich nicht weiter.</b> Erwartet wird ein Link von bahn.de, entweder mit <span class="num">vbid=</span> oder ein langer Link mit <span class="num">#so=…&amp;zo=…</span>.</div>';
+      return;
+    }
+    if(erg.quelle === "vbid"){
+      out().innerHTML = '<div class="hint">Kurzlink erkannt. Verbindung wird bei bahn.de nachgeschlagen …</div>';
+      try{
+        const json = await holen(vbidUrl(erg.vbid));
+        const daten = parseVbidAntwort(json);
+        if(!daten) throw new Error("Die Antwort enthielt keine Verbindung.");
+        daten.vbid = erg.vbid;
+        zeigeLinkTreffer(daten, out());
+      }catch(err){
+        out().innerHTML = '<div class="hint bad"><b>Nachschlagen fehlgeschlagen.</b> '+esc(err.message)+
+          (hasBridge ? ' Prüfe die Internetverbindung.' : ' Im Browser sperrt bahn.de den Abruf von fremden Seiten. In der App auf dem Telefon läuft er über die Hülle und funktioniert.')+
+          '</div><div class="btnrow"><button class="btn" data-manuell>Von Hand erfassen</button></div>';
+        const b = out().querySelector("[data-manuell]");
+        if(b) b.addEventListener("click", () => openForm({}, null));
+      }
+      return;
+    }
+    zeigeLinkTreffer(erg, out());
+  });
+}
+function verlaufHtml(abschnitte){
+  if(!abschnitte || !abschnitte.length) return "";
+  const halte = [];
+  abschnitte.forEach((a,i)=>{
+    halte.push({t:a.ab.uhr, n:a.von, zug:a.zug});
+    if(i === abschnitte.length-1) halte.push({t:a.an.uhr, n:a.nach, zug:null});
+    else halte.push({t:a.an.uhr, n:a.nach, zug:null, umstieg:true});
+  });
+  // doppelte Umstiegshalte zusammenfassen
+  const kompakt = [];
+  for(const h of halte){
+    const letzt = kompakt[kompakt.length-1];
+    if(letzt && letzt.n === h.n){ letzt.ab = h.t; letzt.zug = h.zug || letzt.zug; continue; }
+    kompakt.push({t:h.t, n:h.n, zug:h.zug});
+  }
+  return '<div class="verlauf">'+kompakt.map(h =>
+    '<div class="halt"><div class="t">'+esc(h.t)+(h.ab?"<br>"+esc(h.ab):"")+'</div>'+
+    '<div class="g"><i></i><u></u></div>'+
+    '<div class="n">'+esc(h.n)+(h.zug?'<em>weiter mit '+esc(h.zug)+'</em>':'')+'</div></div>').join("")+'</div>';
+}
+function zeigeLinkTreffer(d, host){
+  const quellname = {vbid:"Kurzlink", langlink:"Langer Link", recon:"Recon-String"}[d.quelle] || "Link";
+  const fehlt = [];
+  if(!d.abfahrt) fehlt.push("Abfahrt");
+  if(!d.ankunft) fehlt.push("Ankunft");
+  if(!d.zugnummern) fehlt.push("Zugnummern");
+  host.innerHTML =
+    '<div class="hint good"><b>'+quellname+' ausgewertet.</b>'+
+      (fehlt.length ? ' Nicht enthalten: '+fehlt.join(", ")+'.' : ' Verbindung vollständig.')+'</div>'+
+    '<div class="box">'+
+      '<div class="kv"><span>Strecke</span><b>'+esc(d.von||"?")+' › '+esc(d.nach||"?")+'</b></div>'+
+      '<div class="kv"><span>Reisedatum</span><b>'+dmy(d.reisedatum)+'</b></div>'+
+      '<div class="kv"><span>Abfahrt</span><b>'+esc(d.abfahrt||"–")+'</b></div>'+
+      '<div class="kv"><span>Ankunft</span><b>'+esc(d.ankunft||"–")+
+        (d.ankunftsdatum && d.ankunftsdatum !== d.reisedatum ? " am "+dmy(d.ankunftsdatum) : "")+'</b></div>'+
+      '<div class="kv"><span>Züge</span><b>'+esc(d.zugnummern||"–")+'</b></div>'+
+      '<div class="kv"><span>Umstiege</span><b>'+(d.umstiege==null?"–":d.umstiege)+'</b></div>'+
+      (d.abschnitte ? '<h3 style="margin-top:12px">Reiseverlauf</h3>'+verlaufHtml(d.abschnitte) : '')+
+    '</div>'+
+    '<div class="btnrow"><button class="btn pri" data-uebernehmen>Übernehmen und Preis ergänzen</button></div>';
+  host.querySelector("[data-uebernehmen]").addEventListener("click", () => {
+    openForm({
+      von:d.von||"", nach:d.nach||"", reisedatum:d.reisedatum||todayIso(),
+      abfahrt:d.abfahrt||"", ankunft:d.ankunft||"", ankunftsdatum:d.ankunftsdatum||"",
+      zugnummern:d.zugnummern||"", umstiege:(d.umstiege==null?"":d.umstiege),
+      klasse:d.klasse||"2", recon:d.recon||null, vbid:d.vbid||null, quelle:"link",
+      abschnitte:d.abschnitte||null, zugbindungAufgehoben:true
+    }, '<b>Aus dem Link übernommen.</b> Preis und Auftragsnummer stehen nicht im Link, die brauche ich von dir.');
+  });
+}
+
+/* ---------- Formular ---------- */
+function openForm(f, hinweis){
+  const neu = !f || !f.id;
+  const d = Object.assign({
+    id:"", auftragsnummer:"", reisedatum:todayIso(), von:"", nach:"", zugnummern:"",
+    abfahrt:"", ankunft:"", ankunftsdatum:"", umstiege:"",
+    preis:"", ticketart:"Super Sparpreis", klasse:"2", zugbindungAufgehoben:true,
+    verspaetungMin:"", status:"offen", notiz:"", screenshot:null, codeBild:null,
+    codeBox:null, eingeloestAm:null, recon:null, vbid:null, quelle:"manuell", abschnitte:null
+  }, f||{});
+
+  const shotUrl = d.screenshot ? bildUrl("shot-"+(d.id||"neu")+"-"+Date.now(), d.screenshot) : null;
+  const codeUrl = d.codeBild ? bildUrl("code-"+(d.id||"neu")+"-"+Date.now(), d.codeBild) : null;
+
+  const s = sheet(neu ? "Fahrt erfassen" : "Fahrt bearbeiten",
+    (hinweis ? '<div class="hint">'+hinweis+'</div>' : '')+
+    '<div class="row2">'+
+      '<div class="field"><label for="f_von">Von</label><input id="f_von" value="'+esc(d.von)+'"></div>'+
+      '<div class="field"><label for="f_nach">Nach</label><input id="f_nach" value="'+esc(d.nach)+'"></div>'+
+    '</div>'+
+    '<div class="row2">'+
+      '<div class="field"><label for="f_datum">Reisedatum</label><input id="f_datum" type="date" value="'+esc(d.reisedatum)+'"></div>'+
+      '<div class="field"><label for="f_preis">Preis in Euro</label><input id="f_preis" type="number" step="0.01" inputmode="decimal" value="'+esc(d.preis)+'"></div>'+
+    '</div>'+
+    '<div class="row2">'+
+      '<div class="field"><label for="f_ab">Abfahrt</label><input id="f_ab" type="time" value="'+esc(d.abfahrt)+'"></div>'+
+      '<div class="field"><label for="f_an">Ankunft</label><input id="f_an" type="time" value="'+esc(d.ankunft)+'"></div>'+
+    '</div>'+
+    '<div class="row2">'+
+      '<div class="field"><label for="f_art">Ticketart</label><select id="f_art">'+TICKETARTEN.map(a=>'<option'+(a===d.ticketart?" selected":"")+'>'+a+'</option>').join("")+'</select></div>'+
+      '<div class="field"><label for="f_klasse">Klasse</label><select id="f_klasse"><option value="2"'+(d.klasse==="2"?" selected":"")+'>2. Klasse</option><option value="1"'+(d.klasse==="1"?" selected":"")+'>1. Klasse</option></select></div>'+
+    '</div>'+
+    '<div class="row2">'+
+      '<div class="field"><label for="f_zug">Zugnummern</label><input id="f_zug" value="'+esc(d.zugnummern)+'" placeholder="ICE 1537, ICE 692"></div>'+
+      '<div class="field"><label for="f_auf">Auftragsnummer</label><input id="f_auf" value="'+esc(d.auftragsnummer)+'"></div>'+
+    '</div>'+
+    '<div class="field"><label class="check"><input type="checkbox" id="f_zba"'+(d.zugbindungAufgehoben?" checked":"")+'><span>Zugbindung aufgehoben, Ticket 12 Monate weiter nutzbar</span></label></div>'+
+    '<div class="row2">'+
+      '<div class="field"><label for="f_vsp">Verspätung am Ziel in Minuten</label><input id="f_vsp" type="number" inputmode="numeric" value="'+esc(d.verspaetungMin)+'" placeholder="z. B. 73"></div>'+
+      '<div class="field"><label for="f_status">Status</label><select id="f_status">'+Object.keys(STATUS).map(k=>'<option value="'+k+'"'+(k===d.status?" selected":"")+'>'+STATUS[k].label+'</option>').join("")+'</select></div>'+
+    '</div>'+
+    '<div class="field"><label for="f_notiz">Notiz</label><textarea id="f_notiz" style="min-height:60px">'+esc(d.notiz)+'</textarea></div>'+
+    '<div class="box"><h3>Fahrkarte und Code</h3>'+
+      '<div class="field"><label for="f_shot">Screenshot der Fahrkarte</label><input type="file" id="f_shot" accept="image/*"></div>'+
+      '<div id="codeStatus">'+
+        (codeUrl ? '<p class="note" style="margin-top:0">Code freigestellt.</p><img class="thumb" src="'+codeUrl+'" alt="Code" style="max-width:150px;background:#fff">'
+          : shotUrl ? '<p class="note" style="margin-top:0">Screenshot vorhanden, Code noch nicht freigestellt.</p>' : '')+
+      '</div>'+
+      '<div class="btnrow">'+
+        (d.screenshot ? '<button class="btn" data-code>Code freistellen</button><button class="btn" data-ocr>Text auslesen</button>' : '')+
+      '</div>'+
+      (shotUrl ? '<img class="thumb" src="'+shotUrl+'" alt="Screenshot">' : '')+
+    '</div>'+
+    '<div class="btnrow">'+
+      '<button class="btn pri" data-save>Speichern</button>'+
+      (neu ? '' : '<button class="btn danger" data-del>Löschen</button>')+
+    '</div>');
+
+  let neuerShot = null;
+  const shotJetzt = () => neuerShot || d.screenshot;
+
+  /* Felder einsammeln. Wird vor dem Zuschneiden gebraucht, denn das
+     Zuschnittfenster ersetzt dieses Formular, und Eingaben sollen bleiben. */
+  const lies = () => {
+    const g = id => { const el = s.querySelector("#"+id); return el ? el.value.trim() : ""; };
+    const zba = s.querySelector("#f_zba");
+    return Object.assign({}, d, {
+      von:g("f_von"), nach:g("f_nach"), reisedatum:g("f_datum"),
+      preis: parseFloat(g("f_preis").replace(",",".")) || 0,
+      abfahrt:g("f_ab"), ankunft:g("f_an"),
+      ticketart:g("f_art"), klasse:g("f_klasse"),
+      zugnummern:g("f_zug"), auftragsnummer:g("f_auf"),
+      zugbindungAufgehoben: !!(zba && zba.checked),
+      verspaetungMin: g("f_vsp") ? parseInt(g("f_vsp"),10) : "",
+      status:g("f_status"), notiz:g("f_notiz"),
+      screenshot: neuerShot || d.screenshot || null
+    });
+  };
+  s.querySelector("#f_shot").addEventListener("change", async e => {
+    neuerShot = e.target.files[0] || null;
+    if(!neuerShot) return;
+    const status = s.querySelector("#codeStatus");
+    status.innerHTML = '<p class="note" style="margin-top:0">Code wird gesucht …</p>';
+    try{
+      const {box} = await codeSuchen(neuerShot);
+      if(box){
+        d.codeBox = box;
+        d.codeBild = await codeSchneiden(neuerShot, box);
+        const u = bildUrl("code-neu-"+Date.now(), d.codeBild);
+        status.innerHTML = '<p class="note" style="margin-top:0">Code gefunden und freigestellt. Sitzt der Ausschnitt nicht, über Code freistellen nachjustieren.</p>'+
+          '<img class="thumb" src="'+u+'" alt="Code" style="max-width:150px;background:#fff">';
+      } else {
+        d.codeBox = null; d.codeBild = null;
+        status.innerHTML = '<p class="note" style="margin-top:0">Kein Code erkannt. Über Code freistellen den Ausschnitt selbst setzen.</p>';
+      }
+    }catch(err){
+      status.innerHTML = '<p class="note" style="margin-top:0">Bild nicht lesbar: '+esc(err.message)+'</p>';
+    }
+    const row = s.querySelector(".box .btnrow");
+    if(row && !row.querySelector("[data-code]")){
+      row.innerHTML = '<button class="btn" data-code>Code freistellen</button><button class="btn" data-ocr>Text auslesen</button>';
+    }
+  });
+
+  s.addEventListener("click", async e => {
+    if(e.target.closest("[data-del]")){
+      await dbDel(d.id); fahrten = fahrten.filter(x=>x.id!==d.id); closeSheet(); renderAll(); return;
+    }
+    if(e.target.closest("[data-code]")){
+      const blob = shotJetzt();
+      if(!blob) return;
+      const stand = lies();
+      openCropSheet(blob, stand.codeBox, (box, bild) => {
+        stand.codeBox = box; stand.codeBild = bild;
+        openForm(stand, "<b>Ausschnitt übernommen.</b> Die übrigen Eingaben sind erhalten.");
+      });
+      return;
+    }
+    if(e.target.closest("[data-ocr]")){
+      const blob = shotJetzt();
+      if(blob) runOcr(blob, s);
+      return;
+    }
+    if(!e.target.closest("[data-save]")) return;
+
+    const rec = Object.assign(lies(), {
+      id: d.id || uid(),
+      quelle: d.quelle || "manuell",
+      angelegtAm: d.angelegtAm || new Date().toISOString()
+    });
+    if(rec.status === "eingeloest" && !rec.eingeloestAm) rec.eingeloestAm = todayIso();
+    if(rec.status !== "eingeloest") rec.eingeloestAm = null;
+    await dbPut(rec);
+    const i = fahrten.findIndex(x=>x.id===rec.id);
+    if(i >= 0) fahrten[i] = rec; else fahrten.push(rec);
+    bildUrls.delete("code-"+rec.id);
+    closeSheet(); renderAll();
+  });
+}
+
+/* ---------- Ausschnitt anpassen ---------- */
+async function openCropSheet(blob, box, fertig){
+  const {img, url} = await bildLaden(blob);
+  const nw = img.naturalWidth, nh = img.naturalHeight;
+  let b = box ? Object.assign({}, box) : {
+    x: Math.round(nw*0.2), y: Math.round(nh*0.35),
+    w: Math.round(Math.min(nw,nh)*0.5), h: Math.round(Math.min(nw,nh)*0.5)
+  };
+
+  const s = sheet("Code freistellen",
+    '<div class="hint">Rahmen auf den Code ziehen, am Punkt unten rechts die Größe ändern. Ein kleiner weißer Rand ringsum muss drin bleiben, sonst liest ihn kein Scanner.</div>'+
+    '<div class="cropstage" id="stage"><img src="'+url+'" alt="Screenshot"><div class="croprect" id="rect"><b></b></div></div>'+
+    '<div class="field" style="margin-top:12px"><label for="cs">Größe</label><input type="range" id="cs" min="8" max="100" value="'+Math.round(b.w/Math.min(nw,nh)*100)+'"></div>'+
+    '<div class="btnrow"><button class="btn pri" data-ok>Übernehmen</button></div>');
+
+  const stage = s.querySelector("#stage"), rect = s.querySelector("#rect"), slider = s.querySelector("#cs");
+  const malen = () => {
+    const sk = stage.clientWidth / nw;
+    rect.style.left = (b.x*sk)+"px"; rect.style.top = (b.y*sk)+"px";
+    rect.style.width = (b.w*sk)+"px"; rect.style.height = (b.h*sk)+"px";
+  };
+  const klemmen = () => {
+    b.w = Math.max(24, Math.min(b.w, Math.min(nw,nh)));
+    b.h = b.w;
+    b.x = Math.max(0, Math.min(b.x, nw-b.w));
+    b.y = Math.max(0, Math.min(b.y, nh-b.h));
+  };
+  const img2 = stage.querySelector("img");
+  if(img2.complete) malen(); else img2.addEventListener("load", malen);
+  window.addEventListener("resize", malen);
+
+  let modus = null, start = null;
+  const pos = ev => { const r = stage.getBoundingClientRect(); return {x:(ev.clientX-r.left)/(stage.clientWidth/nw), y:(ev.clientY-r.top)/(stage.clientWidth/nw)}; };
+  rect.addEventListener("pointerdown", ev => {
+    ev.preventDefault();
+    modus = ev.target.tagName === "B" ? "groesse" : "schieben";
+    start = {p:pos(ev), b:Object.assign({},b)};
+    rect.setPointerCapture(ev.pointerId);
+  });
+  rect.addEventListener("pointermove", ev => {
+    if(!modus) return;
+    const p = pos(ev);
+    if(modus === "schieben"){ b.x = start.b.x + (p.x-start.p.x); b.y = start.b.y + (p.y-start.p.y); }
+    else { b.w = start.b.w + (p.x-start.p.x); }
+    klemmen(); malen();
+    slider.value = String(Math.round(b.w/Math.min(nw,nh)*100));
+  });
+  rect.addEventListener("pointerup", () => { modus = null; });
+  slider.addEventListener("input", () => {
+    const mitte = {x:b.x+b.w/2, y:b.y+b.h/2};
+    b.w = Math.round(Math.min(nw,nh) * (+slider.value/100));
+    b.h = b.w;
+    b.x = Math.round(mitte.x-b.w/2); b.y = Math.round(mitte.y-b.h/2);
+    klemmen(); malen();
+  });
+  s.addEventListener("click", async e => {
+    if(!e.target.closest("[data-ok]")) return;
+    const bild = await codeSchneiden(blob, b);
+    URL.revokeObjectURL(url);
+    closeSheet();
+    fertig(Object.assign({},b), bild);
+  });
+}
+
+/* ---------- Detailansicht ---------- */
+function openDetail(f){
+  const ent = entschaedigung(f);
+  const v = verfallsdatum(f);
+  const d = dauer(f);
+  const zf = f.zugnummern
+    ? "https://www.zugfinder.net/de/zugsuche?q="+encodeURIComponent(f.zugnummern.split(",")[0].replace(/\s+/g,""))
+    : "https://www.zugfinder.net/de/";
+
+  const s = sheet((f.von||"?")+" › "+(f.nach||"?"),
+    '<div class="box">'+
+      '<div class="kv"><span>Reisedatum</span><b>'+dmy(f.reisedatum)+'</b></div>'+
+      '<div class="kv"><span>Abfahrt</span><b>'+esc(f.abfahrt||"–")+'</b></div>'+
+      '<div class="kv"><span>Ankunft</span><b>'+esc(f.ankunft||"–")+
+        (f.ankunftsdatum && f.ankunftsdatum !== f.reisedatum ? " am "+dmy(f.ankunftsdatum) : "")+'</b></div>'+
+      (d ? '<div class="kv"><span>Reisezeit</span><b>'+d+'</b></div>' : '')+
+      '<div class="kv"><span>Preis</span><b>'+eur(f.preis)+'</b></div>'+
+      '<div class="kv"><span>Ticketart</span><b>'+esc(f.ticketart||"–")+', '+esc(f.klasse||"2")+'. Kl.</b></div>'+
+      '<div class="kv"><span>Zug</span><b>'+esc(f.zugnummern||"–")+'</b></div>'+
+      (f.umstiege !== "" && f.umstiege != null ? '<div class="kv"><span>Umstiege</span><b>'+f.umstiege+'</b></div>' : '')+
+      '<div class="kv"><span>Auftragsnummer</span><b>'+esc(f.auftragsnummer||"–")+'</b></div>'+
+      '<div class="kv"><span>Status</span><b>'+STATUS[f.status].label+'</b></div>'+
+      (f.eingeloestAm ? '<div class="kv"><span>eingelöst am</span><b>'+dmy(f.eingeloestAm)+'</b></div>' : '')+
+    '</div>'+
+
+    (f.abschnitte && f.abschnitte.length ? '<div class="box"><h3>Reiseverlauf aus dem Link</h3>'+verlaufHtml(f.abschnitte)+'</div>' : '')+
+
+    '<div class="box"><h3>Fahrplanzeiten</h3><div id="fpOut">'+
+      (f.abfahrt && f.ankunft
+        ? '<div class="kv"><span>geplant</span><b>'+esc(f.abfahrt)+' – '+esc(f.ankunft)+'</b></div>'+
+          '<div class="kv"><span>Herkunft</span><b>'+(f.quelle==="link"?"bahn.de-Link":f.quelle==="ocr"?"Screenshot":"von Hand")+'</b></div>'
+        : '<p class="note" style="margin-top:0">Noch keine Zeiten erfasst.</p>')+
+      '</div>'+
+      '<div class="btnrow">'+
+        (f.recon ? '<button class="btn" data-recon>Aus Link neu auslesen</button>' : '')+
+        '<button class="btn" data-fahrplan>Bei bahn.de nachschlagen</button>'+
+      '</div>'+
+      '<p class="note">Für vergangene Fahrten ist der gespeicherte Link die verlässliche Quelle, die Fahrplanauskunft kennt nur das laufende Fahrplanjahr. Die tatsächliche Verspätung kommt von Zugfinder.</p>'+
+    '</div>'+
+
+    '<div class="box"><h3>Frist</h3>'+
+      (f.zugbindungAufgehoben
+        ? '<div class="kv"><span>nutzbar bis</span><b style="color:'+ampel(f).color+'">'+dmy(v)+'</b></div>'+
+          '<div class="kv"><span>verbleibend</span><b style="color:'+ampel(f).color+'">'+esc(fristText(f))+'</b></div>'+
+          '<p class="note">Zugbindung aufgehoben: freie Verbindung und freie Route, bis zu zwölf Monate ab dem ursprünglichen Reisedatum.</p>'
+        : '<div class="kv"><span>gültig am</span><b>'+dmy(f.reisedatum)+'</b></div>'+
+          '<p class="note">Ohne aufgehobene Zugbindung gilt das Ticket nur am gebuchten Tag.</p>')+
+    '</div>'+
+
+    '<div class="box"><h3>Fahrgastrechte</h3>'+
+      '<div class="kv"><span>erfasste Verspätung</span><b>'+(f.verspaetungMin ? f.verspaetungMin+" Min" : "–")+'</b></div>'+
+      '<div class="kv"><span>Entschädigungsquote</span><b>'+(ent.quote ? (ent.quote*100)+" %" : "–")+'</b></div>'+
+      '<div class="kv"><span>Anspruch</span><b>'+(ent.betrag ? eur(ent.betrag) : "–")+'</b></div>'+
+      (ent.betrag > 0 && !ent.auszahlbar ? '<p class="note">Unter dem Mindestauszahlbetrag von 4 Euro, wird nicht ausgezahlt.</p>' : '')+
+      '<div class="btnrow">'+
+        (hasBridge ? '<button class="btn pri" data-zf>Verspätung bei Zugfinder holen</button>'
+                   : '<a class="btn" href="'+zf+'" target="_blank" rel="noopener" style="text-decoration:none">Zugfinder öffnen</a>')+
+        '<button class="btn" data-vsp>Verspätung eintragen</button>'+
+      '</div>'+
+    '</div>'+
+
+    (f.screenshot || f.codeBild ? '<div class="btnrow"><button class="btn pri" data-full>Fahrkarte anzeigen</button></div>' : '')+
+    (f.notiz ? '<div class="box"><h3>Notiz</h3><p style="margin:0;font-size:14px">'+esc(f.notiz)+'</p></div>' : '')+
+    '<div class="btnrow">'+
+      (istOffen(f) ? '<button class="btn pri" data-einloesen>Als eingelöst markieren</button>'
+                   : '<button class="btn" data-reopen>Wieder als offen führen</button>')+
+      '<button class="btn" data-edit>Bearbeiten</button>'+
+    '</div>');
+
+  s.addEventListener("click", async e => {
+    if(e.target.closest("[data-edit]")) return openForm(f);
+    if(e.target.closest("[data-full]")) return showFull(f);
+    if(e.target.closest("[data-einloesen]")){ await setStatus(f,"eingeloest"); closeSheet(); return; }
+    if(e.target.closest("[data-reopen]")){ await setStatus(f,"offen"); closeSheet(); return; }
+    if(e.target.closest("[data-zf]")){
+      try{ window.AndroidBridge.openZugfinder(f.id, f.zugnummern||"", f.reisedatum||""); }catch(_){}
+      return;
+    }
+    if(e.target.closest("[data-recon]")){
+      const r = parseRecon(f.recon);
+      const out = s.querySelector("#fpOut");
+      if(!r){ out.innerHTML = '<div class="hint bad">Der gespeicherte Link ließ sich nicht auslesen.</div>'; return; }
+      f.abfahrt = r.abfahrt; f.ankunft = r.ankunft; f.ankunftsdatum = r.ankunftsdatum;
+      f.zugnummern = r.zugnummern || f.zugnummern; f.umstiege = r.umstiege;
+      f.abschnitte = r.abschnitte; f.quelle = "link";
+      await dbPut(f); renderAll(); openDetail(f);
+      return;
+    }
+    if(e.target.closest("[data-fahrplan]")){
+      fahrplanNachschlagen(f, s.querySelector("#fpOut"));
+      return;
+    }
+    if(e.target.closest("[data-vsp]")){
+      const box = e.target.closest(".box");
+      if(box.querySelector(".vspform")) return;
+      const wrap = document.createElement("div");
+      wrap.className = "vspform";
+      wrap.innerHTML = '<div class="field" style="margin-top:10px"><label for="q_vsp">Minuten Verspätung am Ziel</label>'+
+        '<input id="q_vsp" type="number" inputmode="numeric" value="'+esc(f.verspaetungMin||"")+'"></div>'+
+        '<button class="btn pri" data-vspsave>Übernehmen</button>';
+      box.appendChild(wrap);
+      wrap.querySelector("[data-vspsave]").addEventListener("click", async () => {
+        f.verspaetungMin = parseInt(wrap.querySelector("#q_vsp").value,10) || "";
+        await dbPut(f); renderAll(); openDetail(f);
+      });
+    }
+  });
+}
+
+/* ---------- Fahrplan bei bahn.de ---------- */
+async function fahrplanNachschlagen(f, out){
+  if(!f.von || !f.nach || !f.reisedatum){
+    out.innerHTML = '<div class="hint bad">Für das Nachschlagen brauche ich Start, Ziel und Datum.</div>';
+    return;
+  }
+  const vergangen = f.reisedatum < todayIso();
+  out.innerHTML = '<div class="hint">Fahrplanauskunft wird abgefragt …'+
+    (vergangen ? ' Das Datum liegt in der Vergangenheit, die Auskunft kennt es möglicherweise nicht mehr.' : '')+'</div>';
+  try{
+    const ort = async name => {
+      const j = await holen("https://int.bahn.de/web/api/reiseloesung/orte?suchbegriff="+encodeURIComponent(name)+"&typ=ALL&limit=3");
+      const liste = Array.isArray(j) ? j : (j && j.length ? j : null);
+      if(!liste || !liste.length) throw new Error("Bahnhof "+name+" nicht gefunden.");
+      return liste[0];
+    };
+    const a = await ort(f.von), b = await ort(f.nach);
+    const zeit = (f.abfahrt || "06:00");
+    const j = await holen("https://int.bahn.de/web/api/angebote/fahrplan", "POST", {
+      abfahrtsHalt: a.id, ankunftsHalt: b.id,
+      anfrageZeitpunkt: f.reisedatum+"T"+zeit,
+      ankunftSuche: "ABFAHRT", klasse: f.klasse === "1" ? "KLASSE_1" : "KLASSE_2",
+      produktgattungen: ["ICE","EC_IC","IR","REGIONAL","SBAHN","BUS"],
+      reisende: [{typ:"ERWACHSENER", ermaessigungen:[{art:"KEINE_ERMAESSIGUNG", klasse:"KLASSENLOS"}], anzahl:1, alter:[]}],
+      schnelleVerbindungen: true, deutschlandTicketVorhanden: false
+    });
+    const verb = (j && j.verbindungen) || [];
+    if(!verb.length) throw new Error("Keine Verbindung in der Antwort.");
+    const zug = (f.zugnummern||"").split(",")[0].trim().replace(/\s+/g," ");
+    let treffer = null;
+    for(const v of verb){
+      const ab = (v.verbindungsAbschnitte||[]);
+      const namen = ab.map(x => ((x.verkehrsmittel||{}).name || "")).join(" ");
+      if(zug && namen.replace(/\s+/g," ").indexOf(zug) > -1){ treffer = v; break; }
+    }
+    const v = treffer || verb[0];
+    const ab = v.verbindungsAbschnitte || [];
+    const ersterHalt = ((ab[0]||{}).halte||[])[0] || {};
+    const letzteHalte = ((ab[ab.length-1]||{}).halte)||[];
+    const letzterHalt = letzteHalte[letzteHalte.length-1] || {};
+    const uhr = iso => iso ? String(iso).split("T")[1].slice(0,5) : null;
+    const abZ = uhr(ersterHalt.abfahrtsZeitpunkt), anZ = uhr(letzterHalt.ankunftsZeitpunkt);
+    if(!abZ || !anZ) throw new Error("Die Antwort enthielt keine Zeiten.");
+    const zuege = ab.map(x => ((x.verkehrsmittel||{}).name||"").trim()).filter(Boolean).join(", ");
+    out.innerHTML =
+      '<div class="hint '+(treffer?"good":"")+'">'+(treffer ? "<b>Passender Zug gefunden.</b>" : "<b>Erste Verbindung des Tages.</b> Zugnummer stimmte nicht überein, Zeiten also prüfen.")+'</div>'+
+      '<div class="kv"><span>laut Auskunft</span><b>'+esc(abZ)+' – '+esc(anZ)+'</b></div>'+
+      '<div class="kv"><span>Züge</span><b>'+esc(zuege||"–")+'</b></div>'+
+      (f.abfahrt && f.abfahrt !== abZ ? '<div class="kv"><span>gespeichert</span><b style="color:var(--warn)">'+esc(f.abfahrt)+' – '+esc(f.ankunft||"–")+'</b></div>' : '')+
+      '<div class="btnrow"><button class="btn pri" data-fpok>Zeiten übernehmen</button></div>';
+    out.querySelector("[data-fpok]").addEventListener("click", async () => {
+      f.abfahrt = abZ; f.ankunft = anZ;
+      if(!f.zugnummern && zuege) f.zugnummern = zuege;
+      f.quelle = "fahrplan";
+      await dbPut(f); renderAll();
+      out.innerHTML = '<div class="hint good">Zeiten übernommen: '+esc(abZ)+' – '+esc(anZ)+'</div>';
+    });
+  }catch(err){
+    out.innerHTML = '<div class="hint bad"><b>Nachschlagen fehlgeschlagen.</b> '+esc(err.message)+' '+
+      (hasBridge
+        ? 'bahn.de weist automatische Abfragen gelegentlich ab. Zeiten aus dem Link oder von Hand eintragen.'
+        : 'Im Browser sperrt bahn.de fremde Herkunft. In der App auf dem Telefon läuft die Abfrage über die Hülle.')+
+      '</div>';
+  }
+}
+
+async function setStatus(f, status){
+  f.status = status;
+  f.eingeloestAm = status === "eingeloest" ? todayIso() : null;
+  await dbPut(f);
+  renderAll();
+}
+
+/* ---------- Vollbild-Fahrkarte ---------- */
+let fullAnsicht = "ticket";
+function showFull(f){
+  fullAnsicht = "ticket";
+  zeichneFull(f);
+  if(hasBridge){ try{ window.AndroidBridge.setBrightness(true); }catch(_){} }
+}
+function zeichneFull(f, nurBahncard){
+  const host = document.getElementById("fullHost");
+  const bcDa = !!(bahncard && (bahncard.codeBild || bahncard.bild));
+  const zeigeBc = (nurBahncard || fullAnsicht === "bahncard") && bcDa;
+
+  let inhalt;
+  if(zeigeBc){
+    const u = bildUrl("bc-code", bahncard.codeBild) || bildUrl("bc-bild", bahncard.bild);
+    inhalt =
+      '<div class="ticket">'+
+        '<div class="ticket-head"><div class="kind">Ermäßigung</div>'+
+          '<div class="rt">'+esc(bahncard.art||"BahnCard")+'</div>'+
+          '<div class="dt">'+esc(bahncard.klasse||"2")+'. Klasse · gültig bis '+dmy(bahncard.gueltigBis)+'</div></div>'+
+        '<div class="code-wrap"><img id="fullCode" src="'+u+'" alt="BahnCard-Code">'+
+          '<div class="cap">BAHNCARD</div></div>'+
+        '<div class="perf"></div>'+
+        '<div class="ticket-data">'+
+          '<div><span>Nummer</span><b>'+esc(bahncard.nummer||"–")+'</b></div>'+
+          '<div><span>Name</span><b>'+esc(bahncard.name||"–")+'</b></div>'+
+        '</div>'+
+      '</div>';
+  } else {
+    const u = f.codeBild ? bildUrl("code-"+f.id, f.codeBild) : null;
+    const v = verfallsdatum(f);
+    const d = dauer(f);
+    inhalt =
+      '<div class="ticket">'+
+        '<div class="ticket-head">'+
+          '<div class="kind">'+esc(f.ticketart||"Fahrkarte")+' · '+esc(f.klasse||"2")+'. Klasse</div>'+
+          '<div class="rt">'+esc(f.von||"?")+' → '+esc(f.nach||"?")+'</div>'+
+          '<div class="dt">'+dmy(f.reisedatum)+
+            (f.abfahrt||f.ankunft ? " · "+esc(f.abfahrt||"––:––")+"–"+esc(f.ankunft||"––:––")+(d?" ("+d+")":"") : "")+'</div>'+
+        '</div>'+
+        (u
+          ? '<div class="code-wrap"><img id="fullCode" src="'+u+'" alt="Ticketcode">'+
+            '<div class="cap">'+esc(f.auftragsnummer||"FAHRKARTE")+'</div></div>'
+          : '<div class="code-none">Für diese Fahrt ist kein Code freigestellt.<br>'+
+            (f.screenshot ? "Screenshot ist vorhanden: in der Bearbeitung über Code freistellen den Ausschnitt setzen."
+                          : "Screenshot der Fahrkarte in der Bearbeitung anhängen.")+'</div>')+
+        '<div class="perf"></div>'+
+        '<div class="ticket-data">'+
+          '<div><span>Zug</span><b>'+esc(f.zugnummern||"–")+'</b></div>'+
+          '<div><span>Auftrag</span><b>'+esc(f.auftragsnummer||"–")+'</b></div>'+
+          '<div><span>Preis</span><b>'+eur(f.preis)+'</b></div>'+
+          '<div><span>Umstiege</span><b>'+(f.umstiege===""||f.umstiege==null?"–":f.umstiege)+'</b></div>'+
+        '</div>'+
+        '<div class="ticket-foot">'+
+          (f.zugbindungAufgehoben
+            ? 'Zugbindung aufgehoben. Freie Verbindung und freie Route, <b>nutzbar bis '+dmy(v)+'</b>.'
+            : 'Zugbindung besteht, gültig am '+dmy(f.reisedatum)+'.')+
+        '</div>'+
+      '</div>';
+  }
+
+  host.innerHTML =
+    '<div class="full" id="full">'+
+      '<div class="full-bar">'+
+        (nurBahncard ? '' :
+          '<button data-view="ticket" aria-pressed="'+(!zeigeBc)+'">Fahrkarte</button>'+
+          (bcDa ? '<button data-view="bahncard" aria-pressed="'+zeigeBc+'">BahnCard</button>' : ''))+
+        '<button class="close" data-closefull>Fertig</button>'+
+      '</div>'+
+      inhalt+
+      '<p class="helfer">Displayhelligkeit ist hochgedreht. Code bei der Kontrolle flach halten und nicht zoomen.</p>'+
+    '</div>';
+
+  // Beim Vergrößern harte Modulkanten, beim Verkleinern geglättet
+  const img = host.querySelector("#fullCode");
+  if(img) img.addEventListener("load", () => {
+    img.style.imageRendering = img.clientWidth >= img.naturalWidth ? "pixelated" : "auto";
+  });
+
+  document.getElementById("full").addEventListener("click", e => {
+    const vb = e.target.closest("[data-view]");
+    if(vb){ fullAnsicht = vb.dataset.view; zeichneFull(f, nurBahncard); return; }
+    if(e.target.closest("[data-closefull]")){
+      host.innerHTML = "";
+      if(hasBridge){ try{ window.AndroidBridge.setBrightness(false); }catch(_){} }
+    }
+  });
+}
+
+/* ---------- BahnCard ---------- */
+function openBcForm(vor){
+  const d = vor || bahncard ||
+    {id:"bahncard", art:"BahnCard 25", klasse:"2", nummer:"", name:"", gueltigBis:"", bild:null, codeBild:null, codeBox:null};
+  const bildU = d.bild ? bildUrl("bc-form-"+Date.now(), d.bild) : null;
+  const codeU = d.codeBild ? bildUrl("bc-formcode-"+Date.now(), d.codeBild) : null;
+
+  const s = sheet("BahnCard hinterlegen",
+    '<div class="row2">'+
+      '<div class="field"><label for="b_art">Art</label><select id="b_art">'+BAHNCARD_ARTEN.map(a=>'<option'+(a===d.art?" selected":"")+'>'+a+'</option>').join("")+'</select></div>'+
+      '<div class="field"><label for="b_klasse">Klasse</label><select id="b_klasse"><option value="2"'+(d.klasse==="2"?" selected":"")+'>2. Klasse</option><option value="1"'+(d.klasse==="1"?" selected":"")+'>1. Klasse</option></select></div>'+
+    '</div>'+
+    '<div class="row2">'+
+      '<div class="field"><label for="b_nr">Kartennummer</label><input id="b_nr" value="'+esc(d.nummer)+'"></div>'+
+      '<div class="field"><label for="b_bis">Gültig bis</label><input id="b_bis" type="date" value="'+esc(d.gueltigBis)+'"></div>'+
+    '</div>'+
+    '<div class="field"><label for="b_name">Name auf der Karte</label><input id="b_name" value="'+esc(d.name)+'"></div>'+
+    '<div class="field"><label for="b_shot">Screenshot der BahnCard</label><input type="file" id="b_shot" accept="image/*"></div>'+
+    '<div id="bcStatus">'+(codeU ? '<img class="thumb" src="'+codeU+'" alt="Code" style="max-width:150px;background:#fff">' : '')+'</div>'+
+    '<div class="btnrow" id="bcBtnRow">'+(d.bild ? '<button class="btn" data-bccode>Code freistellen</button>' : '')+'</div>'+
+    (bildU ? '<img class="thumb" src="'+bildU+'" alt="BahnCard">' : '')+
+    '<p class="note">Die Karte liegt nur auf diesem Gerät. Wird sie bei der Kontrolle verlangt, steht sie in der Fahrkartenansicht direkt daneben.</p>'+
+    '<div class="btnrow"><button class="btn pri" data-bcsave>Speichern</button>'+
+      (bahncard ? '<button class="btn danger" data-bcdel>Entfernen</button>' : '')+'</div>');
+
+  let neuesBild = null;
+  const bildJetzt = () => neuesBild || d.bild;
+  const liesBc = () => {
+    const g = id => { const el = s.querySelector("#"+id); return el ? el.value.trim() : ""; };
+    return Object.assign({}, d, {
+      id:"bahncard", art:g("b_art"), klasse:g("b_klasse"), nummer:g("b_nr"),
+      gueltigBis:g("b_bis"), name:g("b_name"),
+      bild: neuesBild || d.bild || null
+    });
+  };
+  s.querySelector("#b_shot").addEventListener("change", async e => {
+    neuesBild = e.target.files[0] || null;
+    if(!neuesBild) return;
+    const status = s.querySelector("#bcStatus");
+    status.innerHTML = '<p class="note">Code wird gesucht …</p>';
+    try{
+      const {box} = await codeSuchen(neuesBild);
+      if(box){
+        d.codeBox = box;
+        d.codeBild = await codeSchneiden(neuesBild, box);
+        status.innerHTML = '<p class="note" style="margin-top:0">Code freigestellt.</p><img class="thumb" src="'+bildUrl("bc-neu-"+Date.now(), d.codeBild)+'" alt="Code" style="max-width:150px;background:#fff">';
+      } else {
+        d.codeBox = null; d.codeBild = null;
+        status.innerHTML = '<p class="note">Kein Code erkannt. Über Code freistellen selbst setzen.</p>';
+      }
+    }catch(err){ status.innerHTML = '<p class="note">Bild nicht lesbar.</p>'; }
+    const row = s.querySelector("#bcBtnRow");
+    if(row && !row.querySelector("[data-bccode]")) row.innerHTML = '<button class="btn" data-bccode>Code freistellen</button>';
+  });
+
+  s.addEventListener("click", async e => {
+    if(e.target.closest("[data-bccode]")){
+      const blob = bildJetzt();
+      if(!blob) return;
+      const stand = liesBc();
+      openCropSheet(blob, stand.codeBox, (box, bild) => {
+        stand.codeBox = box; stand.codeBild = bild;
+        openBcForm(stand);
+      });
+      return;
+    }
+    if(e.target.closest("[data-bcdel]")){
+      await karteDel("bahncard"); bahncard = null;
+      bildUrls.delete("bc-code"); bildUrls.delete("bc-bild");
+      closeSheet(); renderAll(); return;
+    }
+    if(!e.target.closest("[data-bcsave]")) return;
+    const rec = liesBc();
+    await kartePut(rec);
+    bahncard = rec;
+    bildUrls.delete("bc-code"); bildUrls.delete("bc-bild");
+    closeSheet(); renderAll();
+  });
+}
+function zeigeBahncard(){
+  if(!bahncard) return;
+  fullAnsicht = "bahncard";
+  zeichneFull({von:"", nach:"", reisedatum:"", status:"offen", preis:0}, true);
+  if(hasBridge){ try{ window.AndroidBridge.setBrightness(true); }catch(_){} }
+}
+
+/* ---------- Texterkennung, Rückfallweg ---------- */
+async function runOcr(blob, elternSheet){
+  const ziel = elternSheet ? elternSheet.querySelector("#codeStatus") : null;
+  if(typeof Tesseract === "undefined"){
+    if(ziel) ziel.innerHTML = '<p class="note">Texterkennung ist hier nicht verfügbar. Felder von Hand ausfüllen oder den bahn.de-Link verwenden, der ist ohnehin genauer.</p>';
+    return;
+  }
+  if(ziel) ziel.innerHTML = '<p class="note" style="margin-top:0">Text wird gelesen …</p><progress id="ocrPg" max="100" value="0"></progress>';
+  try{
+    const worker = await Tesseract.createWorker("deu", 1, {
+      logger: m => { const p = document.getElementById("ocrPg"); if(p && typeof m.progress === "number") p.value = Math.round(m.progress*100); }
+    });
+    const {data} = await worker.recognize(blob);
+    await worker.terminate();
+    const t = (data.text||"").replace(/ /g," ");
+    const grab = re => { const m = t.match(re); return m ? m[1].trim() : null; };
+    const treffer = {};
+    const preis = grab(/(\d{1,4}[.,]\d{2})\s*(?:€|EUR)/i) || grab(/(?:€|EUR)\s*(\d{1,4}[.,]\d{2})/i);
+    if(preis) treffer.Preis = preis;
+    const datum = grab(/\b(\d{1,2}\.\d{1,2}\.(?:\d{4}|\d{2}))\b/);
+    if(datum) treffer.Datum = datum;
+    const auf = grab(/Auftrag(?:snummer)?[^A-Z0-9]{0,12}([A-Z0-9]{6,9})/i);
+    if(auf) treffer.Auftragsnummer = auf;
+    const zuege = [...t.matchAll(/\b(ICE|IC|EC|ECE|RE|RB|FLX|NJ|EN)\s?(\d{1,5})\b/g)].map(m=>m[1]+" "+m[2]);
+    if(zuege.length) treffer.Züge = [...new Set(zuege)].join(", ");
+    const zeiten = [...t.matchAll(/\b([01]?\d|2[0-3]):([0-5]\d)\b/g)].map(m=>m[0]);
+    if(zeiten.length >= 2){ treffer.Abfahrt = zeiten[0]; treffer.Ankunft = zeiten[zeiten.length-1]; }
+    if(/Zugbindung\s+(?:ist\s+)?aufgehoben/i.test(t)) treffer["Zugbindung"] = "aufgehoben";
+
+    const eintraege = Object.keys(treffer);
+    if(ziel){
+      ziel.innerHTML = eintraege.length
+        ? '<div class="hint"><b>'+eintraege.length+' Angaben gelesen.</b> Bitte selbst in die Felder übertragen und prüfen, die Erkennung irrt bei DB-Layouts oft.</div>'+
+          '<div class="box">'+eintraege.map(k=>'<div class="kv"><span>'+esc(k)+'</span><b>'+esc(treffer[k])+'</b></div>').join("")+'</div>'
+        : '<div class="hint bad"><b>Nichts Brauchbares erkannt.</b> Der bahn.de-Link ist der zuverlässige Weg.</div>';
+    }
+  }catch(err){
+    if(ziel) ziel.innerHTML = '<div class="hint bad">Texterkennung fehlgeschlagen: '+esc(err && err.message ? err.message : "unbekannter Fehler")+'</div>';
+  }
+}
+
+/* ---------- Sicherung ---------- */
+function offerText(name, mime, text){
+  const out = document.getElementById("dataOut");
+  out.classList.remove("hidden");
+  out.innerHTML = '<div class="field"><label>'+esc(name)+'</label><textarea readonly id="outArea">'+esc(text)+'</textarea></div>'+
+    '<div class="btnrow"><button class="btn pri" id="dl">Herunterladen</button><button class="btn" id="cp">Text kopieren</button></div>';
+  document.getElementById("dl").addEventListener("click", () => {
+    const url = URL.createObjectURL(new Blob([text],{type:mime}));
+    const a = document.createElement("a"); a.href = url; a.download = name; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  });
+  document.getElementById("cp").addEventListener("click", async () => {
+    try{ await navigator.clipboard.writeText(text); document.getElementById("cp").textContent = "Kopiert"; }
+    catch(_){ document.getElementById("outArea").select(); }
+  });
+}
+function blobToDataUrl(b){
+  return new Promise(res=>{ const r = new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>res(null); r.readAsDataURL(b); });
+}
+async function dataUrlToBlob(u){ try{ return await (await fetch(u)).blob(); }catch(_){ return null; } }
+
+async function exportJson(){
+  const arr = [];
+  for(const f of fahrten){
+    const c = Object.assign({}, f);
+    c.screenshot = f.screenshot ? await blobToDataUrl(f.screenshot) : null;
+    c.codeBild = f.codeBild ? await blobToDataUrl(f.codeBild) : null;
+    arr.push(c);
+  }
+  let bc = null;
+  if(bahncard){
+    bc = Object.assign({}, bahncard);
+    bc.bild = bahncard.bild ? await blobToDataUrl(bahncard.bild) : null;
+    bc.codeBild = bahncard.codeBild ? await blobToDataUrl(bahncard.codeBild) : null;
+  }
+  offerText("fahrten-"+todayIso()+".json", "application/json",
+    JSON.stringify({version:2, exportiert:new Date().toISOString(), fahrten:arr, bahncard:bc}, null, 1));
+}
+function exportCsv(){
+  const head = ["Reisedatum","Von","Nach","Abfahrt","Ankunft","Zug","Umstiege","Ticketart","Klasse","Preis","Zugbindung aufgehoben","Nutzbar bis","Verspätung Min","Entschädigung","Status","Auftragsnummer","Quelle","Notiz"];
+  const rows = fahrten.map(f=>{
+    const e = entschaedigung(f);
+    return [f.reisedatum, f.von, f.nach, f.abfahrt, f.ankunft, f.zugnummern, f.umstiege,
+      f.ticketart, f.klasse, String(f.preis).replace(".",","), f.zugbindungAufgehoben?"ja":"nein",
+      verfallsdatum(f)||"", f.verspaetungMin||"", String(e.betrag).replace(".",","),
+      STATUS[f.status].label, f.auftragsnummer, f.quelle||"", (f.notiz||"").replace(/\r?\n/g," ")];
+  });
+  const csv = [head, ...rows].map(r => r.map(c => '"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(";")).join("\r\n");
+  offerText("fahrten-"+todayIso()+".csv", "text/csv", "﻿"+csv);
+}
+async function importJson(file){
+  try{
+    const data = JSON.parse(await file.text());
+    const liste = Array.isArray(data) ? data : data.fahrten;
+    if(!Array.isArray(liste)) throw new Error("Kein gültiges Sicherungsformat.");
+    let n = 0;
+    for(const roh of liste){
+      const rec = Object.assign({}, roh);
+      rec.id = rec.id || uid();
+      for(const k of ["screenshot","codeBild"]){
+        if(typeof rec[k] === "string") rec[k] = rec[k].startsWith("data:") ? await dataUrlToBlob(rec[k]) : null;
+      }
+      if(!STATUS[rec.status]) rec.status = "offen";
+      await dbPut(rec); n++;
+    }
+    if(data.bahncard){
+      const bc = Object.assign({}, data.bahncard, {id:"bahncard"});
+      for(const k of ["bild","codeBild"]){
+        if(typeof bc[k] === "string") bc[k] = bc[k].startsWith("data:") ? await dataUrlToBlob(bc[k]) : null;
+      }
+      await kartePut(bc); bahncard = bc;
+    }
+    fahrten = await dbAll();
+    bildUrls.clear();
+    renderAll();
+    offerText("Ergebnis","text/plain", n+" Fahrten eingelesen."+(data.bahncard?" BahnCard übernommen.":""));
+  }catch(err){
+    offerText("Fehler","text/plain","Einlesen fehlgeschlagen: "+(err.message||err));
+  }
+}
+
+/* ================= Ereignisse ================= */
+document.querySelector("nav").addEventListener("click", e => {
+  const b = e.target.closest("button[data-tab]"); if(!b) return;
+  tab = b.dataset.tab;
+  document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+  for(const t of ["fahrten","auswertung","daten"]) document.getElementById("tab-"+t).hidden = (t !== tab);
+  if(tab === "auswertung") renderStats();
+});
+document.getElementById("filters").addEventListener("click", e => {
+  const b = e.target.closest("[data-f]"); if(!b) return;
+  filter = b.dataset.f; renderFilters(); renderList();
+});
+document.getElementById("list").addEventListener("click", e => {
+  const card = e.target.closest(".card"); if(!card) return;
+  const f = fahrten.find(x => x.id === card.dataset.id); if(!f) return;
+  const act = e.target.closest("[data-act]");
+  const a = act ? act.dataset.act : "open";
+  if(a === "qr") return showFull(f);
+  if(a === "einloesen") return setStatus(f,"eingeloest");
+  if(a === "reopen") return setStatus(f,"offen");
+  openDetail(f);
+});
+document.getElementById("btnNew").addEventListener("click", () => openForm(null));
+document.getElementById("btnLink").addEventListener("click", () => openLinkSheet(""));
+document.getElementById("bcBtn").addEventListener("click", zeigeBahncard);
+document.getElementById("bcBox").addEventListener("click", e => {
+  const b = e.target.closest("[data-bc]"); if(!b) return;
+  if(b.dataset.bc === "neu") openBcForm(); else zeigeBahncard();
+});
+document.getElementById("expJson").addEventListener("click", exportJson);
+document.getElementById("expCsv").addEventListener("click", exportCsv);
+document.getElementById("impJson").addEventListener("click", () => document.getElementById("impFile").click());
+document.getElementById("impFile").addEventListener("change", e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if(f) importJson(f);
+});
+document.getElementById("themeBtn").addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme");
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  try{ localStorage.setItem("theme", next); }catch(_){}
+});
+try{ const t = localStorage.getItem("theme"); if(t) document.documentElement.setAttribute("data-theme", t); }catch(_){}
+
+/* Von der Android-Hülle: geteilter Link landet direkt im Linkfenster */
+window.__linkEmpfangen = function(text){ openLinkSheet(text || ""); };
+
+/* ================= Start ================= */
+(async function start(){
+  try{ fahrten = await dbAll(); }catch(_){ fahrten = []; }
+  try{ bahncard = (await karteGet("bahncard")) || null; }catch(_){ bahncard = null; }
+  if(!fahrten.length){
+    fahrten = [{
+      id:"beispiel", von:"Fulda", nach:"Berlin Hbf", reisedatum: addMonths(todayIso(), -9),
+      abfahrt:"08:34", ankunft:"11:42", ankunftsdatum:"", umstiege:0,
+      preis:68.9, ticketart:"Super Sparpreis", klasse:"2", zugnummern:"ICE 1537",
+      auftragsnummer:"BEISPIEL", zugbindungAufgehoben:true, verspaetungMin:71,
+      status:"offen", notiz:"Beispieleintrag, kann gelöscht werden.",
+      screenshot:null, codeBild:null, codeBox:null, quelle:"manuell",
+      eingeloestAm:null, angelegtAm:new Date().toISOString()
+    }];
+  }
+  renderAll();
+})();
+</script>
+
+</body>
+</html>

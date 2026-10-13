@@ -1,0 +1,10 @@
+{
+  "name": "Offene Fahrten",
+  "short_name": "Fahrten",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#eaeef2",
+  "theme_color": "#0a5f7a",
+  "lang": "de",
+  "icons": []
+}

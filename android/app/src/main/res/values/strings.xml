@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Offene Fahrten</string>
+    <string name="zugfinder_title">Zugfinder</string>
+    <string name="zugfinder_hint">Zug %1$s am %2$s nachschlagen. Die Verspätung am Zielbahnhof unten eintragen, sie wird in die Fahrt übernommen.</string>
+    <string name="zugfinder_minutes_hint">Minuten Verspätung</string>
+    <string name="zugfinder_apply">Übernehmen</string>
+    <string name="zugfinder_invalid">Bitte eine Zahl eintragen.</string>
+</resources>
